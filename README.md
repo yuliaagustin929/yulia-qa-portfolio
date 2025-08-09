@@ -11,3 +11,4 @@ Hi — I'm Yulia Agustin, QA Engineer. This repo contains examples of web automa
 
 ## How to run
 See each subfolder README for run instructions.
+test
