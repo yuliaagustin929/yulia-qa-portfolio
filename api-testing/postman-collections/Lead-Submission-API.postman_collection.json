@@ -1,0 +1,164 @@
+{
+	"info": {
+		"_postman_id": "b3e94a82-1234-4bca-8799-a9876543210f",
+		"name": "Lead Submission & User API Suite",
+		"description": "Comprehensive Postman collection with dynamic pre-request test data generation, status assertions, header checks, and schema validation.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Health Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200 OK', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test('Response time is under 800ms', function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(800);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/users?page=1",
+					"host": ["{{baseUrl}}"],
+					"path": ["users"],
+					"query": [{ "key": "page", "value": "1" }]
+				}
+			}
+		},
+		{
+			"name": "2. Create Lead (Positive Happy Path)",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Generate dynamic NIK and timestamp",
+							"const randomDigits = Math.floor(100000000000 + Math.random() * 900000000000);",
+							"const dynamicNik = '3171' + randomDigits;",
+							"pm.environment.set('generatedNik', dynamicNik);",
+							"pm.environment.set('idempotencyKey', 'idemp-' + Date.now());"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201 Created', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"pm.test('Response contains generated ID and timestamp', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('id');",
+							"    pm.expect(jsonData).to.have.property('createdAt');",
+							"    pm.environment.set('lastCreatedId', jsonData.id);",
+							"});",
+							"pm.test('Response content-type is application/json', function () {",
+							"    pm.response.to.have.header('content-type');",
+							"    pm.expect(pm.response.headers.get('content-type')).to.include('application/json');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "X-Idempotency-Key",
+						"value": "{{idempotencyKey}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Yulia Agustin\",\n    \"job\": \"Senior QA Engineer\",\n    \"nik\": \"{{generatedNik}}\",\n    \"loanAmount\": 75000000,\n    \"tenor\": 36\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/users",
+					"host": ["{{baseUrl}}"],
+					"path": ["users"]
+				}
+			}
+		},
+		{
+			"name": "3. Get Lead By ID (Query Details)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test('Data object structure is valid', function () {",
+							"    const res = pm.response.json();",
+							"    pm.expect(res.data).to.be.an('object');",
+							"    pm.expect(res.data.id).to.eql(2);",
+							"    pm.expect(res.data.email).to.include('@');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/users/2",
+					"host": ["{{baseUrl}}"],
+					"path": ["users", "2"]
+				}
+			}
+		},
+		{
+			"name": "4. Missing Required Parameter (Negative)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 400 Bad Request', function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"pm.test('Returns descriptive error message', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.error).to.eql('Missing password');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [{ "key": "Content-Type", "value": "application/json" }],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"sydney@fife\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/login",
+					"host": ["{{baseUrl}}"],
+					"path": ["login"]
+				}
+			}
+		}
+	]
+}
